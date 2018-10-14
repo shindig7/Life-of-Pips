@@ -4,6 +4,8 @@ from keras.models import Sequential
 from keras import layers
 from keras.initializers import RandomNormal
 import numpy as np
+from numpy import random
+from scipy.stats.norm import pdf
 
 class Pip(object):
     def __init__(self, x, y):
@@ -27,13 +29,17 @@ class Pip(object):
         self.X = x
         self.Y = y
         self.Vision = None
+        self.Lifetime = 0
     
     def set_Vision(self, board):
-        v_list = [item for sublist in board[self.X-2:self.X+3,
-                                            self.Y-2:self.Y+3].tolist() for item in sublist]
-        v_list.remove(100)
-        v_array = np.array(v_list).reshape(1,24)
-        self.Vision = v_array
+        try:
+            v_list = [item for sublist in board[self.X-2:self.X+3,
+                                                self.Y-2:self.Y+3].tolist() for item in sublist]
+            v_list.remove(100)
+            v_array = np.array(v_list).reshape(1,24)
+            self.Vision = v_array
+        except ValueError:
+            pass
         
     def set_pos(self, x, y):
         self.X = x
@@ -42,7 +48,7 @@ class Pip(object):
     def move(self, board, change):
         cx, cy = change
         new_x, new_y = self.X + cx, self.Y + cy
-        if new_x > 10 or new_y > 10 or new_x < 0 or new_y < 0:
+        if new_x >= 10 or new_y >= 10 or new_x < 0 or new_y < 0:
             return False
         else:
             if board[new_x][new_y] == 1:
@@ -50,7 +56,8 @@ class Pip(object):
             
             board[new_x][new_y] = 100
             board[self.X][self.Y] = 0
-            self.X, self.Y = new_x, new_y
+            self.set_pos(new_x, new_y)
+            return True
         
     def predict(self, board):
         pred = self.brain.predict(self.Vision)
@@ -60,7 +67,8 @@ class Pip(object):
         if r:
             self.set_Vision(board)
         else:
-            self.predict(board)
+            pass
+
         
 
 def create_board(x, y, pip_pos, food_pos=False):
@@ -89,6 +97,13 @@ print(decision)
 food_pos = [(4,4), (5,4), (6,7), (7,9), (1,3),
             (1,9), (9,7), (5,9), (8,2), (2,1)]
 
+def get_normal(xL, xU, step, mu, sig):
+    x = np.arange(xL, xU, step)
+    prob = pdf(x, loc=mu, scale=sig)
+    prob = prob / prob.sum()
+    v = random.choice(x, p=prob)
+    return v
+
 def play(minutes):
     p = Pip(5,5)
     board = create_board(10, 10, [(5,5)], food_pos=food_pos)
@@ -96,10 +111,39 @@ def play(minutes):
 
     for i in range(minutes):
         p.predict(board)
+        p.Lifetime += 1
 
     return p
 
-Pips = [play(100) for _ in range(100)]    
+def Breed(PipXX, PipXY):
+    def combine_or_mutate(rx, ry):
+        c = [rx, ry, 'mutate']
+        w = [4, 4, 2]
+        choice = random.choices(c, w)
+        if choice == 'mutate':
+            cc = random.choice(rx, ry)
+            new_gene = cc * get_normal(.5, 2, .01, 1.25, .25)
+        else:
+            new_gene = choice
+        return new_gene
+            
         
-        
+    xw = PipXX.brain.get_weights()[:7]
+    yw = PipXY.brain.get_weights()[:7]
+    
+    new_weight = []
+    for weight_index in range(len(xw)):
+        new_row = []
+        for row_index in range(len(xw)):
+            rx = xw[weight_index][row_index]
+            ry = yw[weight_index][row_index]
 
+            #for i in range(rx.size):        
+            new_row.append(combine_or_mutate(rx, ry))
+        new_weight.append(new_row)
+    
+    return new_weight
+
+
+X, Y = [play(50) for _ in range(2)]
+B = Breed(X, Y)

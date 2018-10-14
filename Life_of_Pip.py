@@ -4,8 +4,8 @@ from keras.models import Sequential
 from keras import layers
 from keras.initializers import RandomNormal
 import numpy as np
-from numpy import random
-from scipy.stats.norm import pdf
+import random
+import scipy.stats as ss
 
 class Pip(object):
     def __init__(self, x, y):
@@ -99,7 +99,7 @@ food_pos = [(4,4), (5,4), (6,7), (7,9), (1,3),
 
 def get_normal(xL, xU, step, mu, sig):
     x = np.arange(xL, xU, step)
-    prob = pdf(x, loc=mu, scale=sig)
+    prob = ss.norm.pdf(x, loc=mu, scale=sig)
     prob = prob / prob.sum()
     v = random.choice(x, p=prob)
     return v

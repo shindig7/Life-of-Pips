@@ -154,17 +154,3 @@ def Breed(PipXX, PipXY):
 X, Y = [play(50) for _ in range(2)]
 #B = Breed(X, Y)
 
-def weight_test(xw):
-    xlayer = xw[1]
-    if len(xlayer) == 10:
-        new_layer = np.zeros((1,10))
-        for k, val in enumerate(xlayer):
-            new_layer[0, k] = val * 2
-    else:
-        new_layer = np.zeros((len(xlayer), int(xlayer.size/len(xlayer))))
-        for j, iwl in enumerate(xlayer):
-            for k, val in enumerate(iwl):
-                new_layer[j, k] = val*2
-            
-    return new_layer
-

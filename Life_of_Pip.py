@@ -4,7 +4,7 @@ from keras.models import Sequential
 from keras import layers
 from keras.initializers import RandomNormal
 import numpy as np
-import random
+from numpy import random
 import scipy.stats as ss
 
 class Pip(object):
@@ -118,32 +118,53 @@ def play(minutes):
 def Breed(PipXX, PipXY):
     def combine_or_mutate(rx, ry):
         c = [rx, ry, 'mutate']
-        w = [4, 4, 2]
-        choice = random.choices(c, w)
-        if choice == 'mutate':
-            cc = random.choice(rx, ry)
-            new_gene = cc * get_normal(.5, 2, .01, 1.25, .25)
+        w = [.4, .4, .2]
+        choice = random.choice(c, p=w)
+        if type(choice) is np.str_:
+            cc = random.choice([1,2])
+            if cc == 1:
+                m_gene = rx
+            else:
+                m_gene = ry
+            new_gene = m_gene * get_normal(.5, 2, .01, 1.25, .25)
         else:
             new_gene = choice
         return new_gene
             
         
-    xw = PipXX.brain.get_weights()[:7]
-    yw = PipXY.brain.get_weights()[:7]
+    xw = PipXX.brain.get_weights()
+    yw = PipXY.brain.get_weights()
     
-    new_weight = []
-    for weight_index in range(len(xw)):
-        new_row = []
-        for row_index in range(len(xw)):
-            rx = xw[weight_index][row_index]
-            ry = yw[weight_index][row_index]
-
-            #for i in range(rx.size):        
-            new_row.append(combine_or_mutate(rx, ry))
-        new_weight.append(new_row)
+    new_pip_weights = []
+    for i, layer in enumerate(xw):
+        if len(layer) == 10:
+            new_layer = np.zeros((1,10))
+            for k, value in enumerate(layer):
+                new_layer[0, k] = combine_or_mutate(xw[i][0, k], yw[i][0, k])
+        else:
+            new_layer = np.zeros((len(layer), int(layer.size / len(layer))))
+            for j, input_weight in enumerate(layer):
+                for k, value in enumerate(input_weight):
+                    new_layer[j, k] = combine_or_mutate(xw[i][j, k], yw[i][j, k])
+        new_pip_weights.append(new_layer)
+    return new_pip_weights
     
-    return new_weight
-
+    
 
 X, Y = [play(50) for _ in range(2)]
-B = Breed(X, Y)
+#B = Breed(X, Y)
+
+def weight_test(xw):
+    xlayer = xw[1]
+    if len(xlayer) == 10:
+        new_layer = np.zeros((1,10))
+        for k, val in enumerate(xlayer):
+            new_layer[0, k] = val * 2
+    else:
+        new_layer = np.zeros((len(xlayer), int(xlayer.size/len(xlayer))))
+        for j, iwl in enumerate(xlayer):
+            for k, val in enumerate(iwl):
+                new_layer[j, k] = val*2
+            
+    return new_layer
+
